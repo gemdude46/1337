@@ -231,8 +231,6 @@ class Element:
                 int(math.ceil(cssparse.evalsize(margin[3], self.parent.width(), 'h', auto=(self.parent.width()/2 - self.width()/2))))
             ]
             
-            if self.attrs.get('id') == 'bar': setpx((0,0), str(margin), '0', self)
-            
             csr[0] += margin[3]
             csr[1] += margin[0]
             
