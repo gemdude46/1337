@@ -88,7 +88,7 @@ def app(stdscr):
                     mouse[0] -= 1
                 elif kin == curses.KEY_RIGHT:
                     mouse[0] += 1
-                elif kin == curses.KEY_BACKSPACE:
+                elif kin in (curses.KEY_BACKSPACE, 127, 27):
                     mouse[0] -= 1
                     URI = URI[:cpos-1] + URI[cpos:]
                 elif kin in (curses.KEY_ENTER, 10, 13):
