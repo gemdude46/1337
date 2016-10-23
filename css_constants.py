@@ -6,7 +6,7 @@ tcolors = {
     (0,176,0) : 'green',
     (0,0,176) : 'blue',
     (0,176,176) : 'cyan',
-    (176,85,0) : 'yellow',
+    (176,176,0) : 'yellow',
     (176,0,176) : 'magenta',
     (230,230,230) : 'white'
 }
@@ -29,7 +29,7 @@ cursors = {
     'text': 'I',
     'wait': unichr(0x2573),
     'zoom-in': 'Q',
-    'zoom-out': 'Q',
+    'zoom-out': 'q',
 }
 
 charsize = (8,12)

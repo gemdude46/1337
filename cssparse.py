@@ -3,6 +3,14 @@ from css_constants import *
 
 scrsize = (80, 24)
 
+def memodict(f):
+    """ Memoization decorator for a function taking a single argument """
+    class memodict(dict):
+        def __missing__(self, key):
+            ret = self[key] = f(key)
+            return ret 
+    return memodict().__getitem__
+
 def setscrsize(ns):
     global scrsize
     scrsize = ns
@@ -107,6 +115,7 @@ def CRPchain(t):
             n = ('and', n, ('tag', s[1:]))
     return n
 
+@memodict
 def parserule(rule):
     rule = rule.lower()
     ci = 0
@@ -127,4 +136,5 @@ def parserule(rule):
         ci += 1
     
     try: return CRPrule(tks)
+    except KeyboardInterrupt: raise
     except: return ('tag', '~~fail~~')

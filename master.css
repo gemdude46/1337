@@ -9,7 +9,7 @@ a { color: #00E; text-decoration: underline; cursor: pointer; }
 
 b, strong { font-weight: bold; }
 
-body { margin: 1em; background-color: white; color: black; display: block; position: relative; width: 100%;}
+body { margin: 1em; background-color: white; color: black; display: block; position: relative; width: 100%; }
 
 canvas { display: block; }
 
@@ -25,6 +25,8 @@ h6 { font-weight: bold; display: block; }
 html { display: block; }
 
 img { display: inline-block; }
+
+li { display: list-item; }
 
 p { display: block; }
 

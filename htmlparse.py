@@ -39,4 +39,6 @@ def parse(html):
     while cur.tag != 'document':
         cur.parent.write(cur)
         cur = cur.parent
+    if not cur.getElementsByTagName('body'):
+        return parse('<html><body>%s</body></html>' % html)
     return cur

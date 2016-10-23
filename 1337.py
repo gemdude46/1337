@@ -41,7 +41,7 @@ def app(stdscr):
     
     focus = 'mouse'
     
-    goto('http://neelu.co')
+    goto('http://info.cern.ch')
     
     stdscr.nodelay(True)
     
@@ -56,7 +56,10 @@ def app(stdscr):
     while stdscr.getch() > -1: pass
     while True:
         ender = False
+        evtrsp = []
         document.cssize = size = stdscr.getmaxyx()
+        
+        clickz = False
         
         if tuple(size) != osz:
             osz = tuple(size)
@@ -76,8 +79,10 @@ def app(stdscr):
                     mouse[0] -= 1
                 if kin == curses.KEY_RIGHT:
                     mouse[0] += 1
-                if kin in (curses.KEY_ENTER, 10, 13) and mouse[1] == 1 and mouse[0] > 10 and mouse[0] < size[1] - 10:
-                    focus = 'uri'
+                if kin in (curses.KEY_ENTER, 10, 13):
+                    clickz = True
+                    if mouse[1] == 1 and mouse[0] > 10 and mouse[0] < size[1] - 10:
+                        focus = 'uri'
             elif focus == 'uri':
                 curses.curs_set(True)
                 mouse[1] = 1
@@ -106,11 +111,11 @@ def app(stdscr):
         if   mouse[1] < 1          : mouse[1] = 1
         elif mouse[1] > size[0] - 1: mouse[1] = size[0] - 1
         
-        document.tick()
+        document.tick(evtrsp)
         
-        stdscr.addstr(0, 0, ('{:^%i}' % size[1]).format(browser_name), curses.A_BOLD | cp(white, blue))
-        stdscr.addstr(1, 0, (' [<=] [>] [{:<%i}|reload] ' % (size[1] - 20)).format(URI), curses.A_BOLD | cp(black, white))
-        stdscr.addstr(2, 0, ('{:^%i}' % size[1]).format(document.getTitle()), curses.A_UNDERLINE | cp(black, white))
+        stdscr.addstr(0, 0, (u'{:^%i}' % size[1]).format(browser_name).encode(encoding), curses.A_BOLD | cp(white, blue))
+        stdscr.addstr(1, 0, (u' [<=] [>] [{:<%i}|reload] ' % (size[1] - 20)).format(URI).encode(encoding), curses.A_BOLD | cp(black, white))
+        stdscr.addstr(2, 0, (u'{:^%i}' % size[1]).format(document.getTitle()).encode(encoding), curses.A_UNDERLINE | cp(black, white))
         
         try: stdscr.addstr(size[0]-1, 0, ' ' * size[1], cp(black, white))
         except curses.error: pass
@@ -137,17 +142,21 @@ def app(stdscr):
         
         if focus == 'mouse':
             try:
+                E = scrmap[mouse[0]][mouse[1]-3]['e'] if mouse[1] > 2 and mouse[1] < size[0] - 1 else None
                 mp = (
-                    css_constants.cursors.get(scrmap[mouse[0]][mouse[1]-3]['e'].CSS().get('cursor'), css_constants.cursors['default']) 
+                    css_constants.cursors.get(E.CSS().get('cursor'), css_constants.cursors['default']) 
                         if mouse[1] > 2 and mouse[1] < size[0] - 1 else 
                             css_constants.cursors['default']
                      )
                 
                 stdscr.addstr(mouse[1], mouse[0], mp, cp(black, white))
+                if clickz and E:
+                    E.click(evtrsp)
             except curses.error: pass
         else:
             stdscr.move(mouse[1], mouse[0])
         
+        for e in evtrsp: eval(e)
         if ender: goto(URI)
         stdscr.refresh()
 

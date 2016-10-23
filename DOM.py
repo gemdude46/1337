@@ -10,9 +10,11 @@ master_css = cssparse.parse(master_css_raw)
 class Element:
     def __init__(self, parent, tag, attrs={}):
         self.parent = parent
-        self.tag = tag
+        self.root = parent.root if parent else self 
+        self.tag = tag.lower()
         self.attrs = attrs
         self.content = []
+        self.match_cache = {}
         self.csr_start_render = (0,0)
         self.css = {} if tag == 'document' else self.CSS()
         self.css_cache = {} if tag == 'document' else None
@@ -64,9 +66,6 @@ class Element:
             arr.extend(kid.getElementsByTagName(tag))
         return arr
     
-    def root(self):
-        return self.parent.root() if self.parent else self
-    
     def positionalparent(self):
         return self.parent if self.parent.positioned() else self.parent.positionalparent()
     
@@ -89,13 +88,17 @@ class Element:
         self.__dict__['all css'] = css
         return css
     
-    def tick(self):
+    def tick(self, rsp):
         if self.tag == 'document':
             del self.__dict__['all css']
             cssparse.setscrsize((self.cssize[1], self.cssize[0]))
         for kid in self.children():
-            kid.tick()
+            kid.tick(rsp)
         
+    def click(self, rsp):
+        if self.tag == 'a' and 'href' in self.attrs and not self.attrs['href'].startswith('#'):
+            rsp.append('goto(%r)' % urljoin(self.root.uri, self.attrs['href']))
+        if self.parent: self.parent.click(rsp)
     
     def matches(self, rule):
         if type(rule) is tuple:
@@ -116,12 +119,17 @@ class Element:
                 return rule[1] in self.attrs.get('class', '').lower().split()
             return False
         else:
-            return self.matches(cssparse.parserule(rule))
+            if rule in self.match_cache:
+                return self.match_cache[rule]
+            else:
+                res = self.matches(cssparse.parserule(rule))
+                self.match_cache[rule] = res
+                return res
         
     
     def CSS(self):
         CSS = self.parent.CSS() if self.parent else {}
-        for rule in master_css + self.root().getAllCSS() + cssparse.parse('%s{%s}' % (self.tag, self.attrs.get('style',''))):
+        for rule in master_css + self.root.getAllCSS() + cssparse.parse('%s{%s}' % (self.tag, self.attrs.get('style',''))):
             
             if self.matches(rule[0]):
                 for p in rule[1]:
@@ -131,16 +139,16 @@ class Element:
         return CSS
     
     def block(self):
-        return self.css.get('display') == 'block'
+        return self.css.get('display') in ('block', 'list-item')
     
     def ablock(self):
-        return self.css.get('display', 'inline').endswith('block')
+        return self.block() or self.css.get('display') == 'inline-block'
     
     def positioned(self):
         return self.css.get('position') not in ('static', 'initial')
     
     def width(self):
-        pw = self.parent.width() if self.parent else self.root().cssize[1]
+        pw = self.parent.width() if self.parent else self.root.cssize[1]
         return cssparse.evalsize(self.css.get('width', 'auto' if self.block() or not self.ablock() else ('%rem' % (self.rdright - self.rdleft))),
             pw, 'h', auto=(pw - self.margin[1] - self.margin[3]))
     
@@ -149,7 +157,7 @@ class Element:
     
     def height(self):
         h = cssparse.evalsize(self.css.get('height', '%rem' % self.lnheight()),
-            self.parent.lheight() if self.parent else self.root().cssize[0], 'v', auto=0)
+            self.parent.lheight() if self.parent else self.root.cssize[0], 'v', auto=0)
         self.__dict__['l h'] = h
         return h
     
@@ -183,6 +191,8 @@ class Element:
         return csr
     
     def render(self, setpx, csr):
+        
+        if self.tag == '/start': return csr
         
         margin = [0,0,0,0]
         
@@ -250,11 +260,15 @@ class Element:
                 for i in range(width):
                     for j in range(height):
                         setpx((left+i, top+j), ' ', 'cp(0,%s)' % bgc, self)
-                if self.tag == 'body': self.root().bgc = bgc
+                if self.tag == 'body': self.root.bgc = bgc
                 
+            self.content.insert(0, Element(self, '/start'))
+            
+            lastel = None
             
             for obj in self.content:
                 if isinstance(obj, Element):
+                    if not obj.positioned(): lastel = obj
                     csr = obj.render(setpx, csr)
                     
                     if csr[0] > rdright: rdright = csr[0]
@@ -277,6 +291,8 @@ class Element:
                         csr[0] += 1
                         
                         if csr[0] > rdright: rdright = csr[0]
+                        if csr[0] >= self.width() + self.rdleft:
+                            lastel.takenl(csr)
             
             if self.block(): self.takenl(csr)
             elif self.ablock(): csr[:] = [self.csr_start_render[0] + self.iwidth(), self.csr_start_render[1]]
@@ -294,5 +310,8 @@ class Element:
             csr[1] += margin[2]
             
             self.margin = margin
+            
+            if self.content and isinstance(self.content[0], Element) and self.content[0].tag == '/start':
+                del self.content[0]
             
             if self.css.get('position') in ('absolute', 'fixed'): return oric

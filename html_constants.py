@@ -11,6 +11,7 @@ self_closing_tags = (
     'keygen',
     'link',
     'meta',
+    'nextid',
     'param',
     'source',
     'track',
