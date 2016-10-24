@@ -3,18 +3,29 @@ from css_constants import *
 
 scrsize = (80, 24)
 
-def memodict(f):
-    """ Memoization decorator for a function taking a single argument """
+def memodict1(f):
     class memodict(dict):
         def __missing__(self, key):
             ret = self[key] = f(key)
             return ret 
     return memodict().__getitem__
 
+def memodictx(function):
+    memo = {}
+    def wrapper(*args):
+        if args in memo:
+            return memo[args]
+        else:
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+    return wrapper
+
 def setscrsize(ns):
     global scrsize
     scrsize = ns
 
+@memodict1
 def parse(css):
     css = css.strip()
     ss = []
@@ -66,6 +77,7 @@ def color(css, df='black'):
     
     return df
     
+@memodictx
 def evalsize(css, parent=0, d='v', auto=None):
     css = css.strip()
     if css == '0': return 0
@@ -84,8 +96,9 @@ def evalsize(css, parent=0, d='v', auto=None):
         if u == 'px' or u == 'pt': return n / charsize[d == 'v']
         if u == 'ex': return n / 2.0
         if u == '%': return n * parent / 100.0
+        if u == 'vw': return n * scrsize[0] / 100.0
         if u == 'vh': return n * scrsize[1] / 100.0
-    except: pass
+    except Exception: pass
     return 0
 
 def CRPrule(t):
@@ -115,7 +128,7 @@ def CRPchain(t):
             n = ('and', n, ('tag', s[1:]))
     return n
 
-@memodict
+@memodict1
 def parserule(rule):
     rule = rule.lower()
     ci = 0

@@ -13,7 +13,11 @@ body { margin: 1em; background-color: white; color: black; display: block; posit
 
 canvas { display: block; }
 
+dd { display: block; margin-left: 40px; }
+
 div { display: block; }
+
+dt { display: block; }
 
 h1 { font-weight: bold; display: block; }
 h2 { font-weight: bold; display: block; }
@@ -35,3 +39,4 @@ script { display: none; }
 span { display: inline; }
 
 u { text-decoration: underline; }
+

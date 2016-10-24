@@ -1,4 +1,4 @@
-import cssparse, math
+import cssparse, math, random
 from gpw import *
 from urlparse import urljoin
 
@@ -9,18 +9,21 @@ master_css = cssparse.parse(master_css_raw)
 
 class Element:
     def __init__(self, parent, tag, attrs={}):
+        self.age = 0
         self.parent = parent
+        self.I_did_an_errorz = False
         self.root = parent.root if parent else self 
         self.tag = tag.lower()
         self.attrs = attrs
         self.content = []
         self.match_cache = {}
         self.csr_start_render = (0,0)
-        self.css = {} if tag == 'document' else self.CSS()
+        self.css = {'display':'block'} if tag == 'document' else self.CSS()
         self.css_cache = {} if tag == 'document' else None
         self.GET_cache = {} if tag == 'document' else None
         self.rdleft = self.rdright = self.rdtop = self.rdbottom = 0
         self.margin = [0,0,0,0]
+        
     
     def GET(self, uri, rmt=None):
         if uri in self.GET_cache:
@@ -89,6 +92,9 @@ class Element:
         return css
     
     def tick(self, rsp):
+        self.age += 1
+        if True:
+            self.css = self.CSS()
         if self.tag == 'document':
             del self.__dict__['all css']
             cssparse.setscrsize((self.cssize[1], self.cssize[0]))
@@ -128,8 +134,9 @@ class Element:
         
     
     def CSS(self):
-        CSS = self.parent.CSS() if self.parent else {}
-        for rule in master_css + self.root.getAllCSS() + cssparse.parse('%s{%s}' % (self.tag, self.attrs.get('style',''))):
+        if self.tag[0] == '/': return {}
+        CSS = self.parent.css.copy() if self.parent else {}
+        for rule in master_css + self.root.getAllCSS() + cssparse.parse('*{%s}' %  self.attrs.get('style','')):
             
             if self.matches(rule[0]):
                 for p in rule[1]:
@@ -150,14 +157,14 @@ class Element:
     def width(self):
         pw = self.parent.width() if self.parent else self.root.cssize[1]
         return cssparse.evalsize(self.css.get('width', 'auto' if self.block() or not self.ablock() else ('%rem' % (self.rdright - self.rdleft))),
-            pw, 'h', auto=(pw - self.margin[1] - self.margin[3]))
+            pw, 'h', (pw - self.margin[1] - self.margin[3]))
     
     def iwidth(self):
         return int(math.ceil(self.width()))
     
     def height(self):
         h = cssparse.evalsize(self.css.get('height', '%rem' % self.lnheight()),
-            self.parent.lheight() if self.parent else self.root.cssize[0], 'v', auto=0)
+            self.parent.lheight() if self.parent else self.root.cssize[0], 'v', 0)
         self.__dict__['l h'] = h
         return h
     
@@ -202,8 +209,6 @@ class Element:
         oric = csr[:]
         
         try:
-            self.css = self.CSS()
-            
             if self.css.get('display') == 'none': return csr
             
             if self.block() and csr[0] != self.parent.csr_start_render[0]: self.takenl(csr)
@@ -234,11 +239,11 @@ class Element:
             
             
             margin = [
-                int(math.ceil(cssparse.evalsize(margin[0], self.parent.height(), 'v', auto=(self.parent.height()/2 - self.height()/2
+                int(math.ceil(cssparse.evalsize(margin[0], self.parent.height(), 'v', (self.parent.height()/2 - self.height()/2
                     if self.css.get('position') == 'absolute' else 0)))),
-                int(math.ceil(cssparse.evalsize(margin[1], self.parent.width(), 'h', auto=0))),
-                int(math.ceil(cssparse.evalsize(margin[2], self.parent.height(), 'v', auto=0))),
-                int(math.ceil(cssparse.evalsize(margin[3], self.parent.width(), 'h', auto=(self.parent.width()/2 - self.width()/2))))
+                int(math.ceil(cssparse.evalsize(margin[1], self.parent.width(), 'h', 0))),
+                int(math.ceil(cssparse.evalsize(margin[2], self.parent.height(), 'v', 0))),
+                int(math.ceil(cssparse.evalsize(margin[3], self.parent.width(), 'h', (self.parent.width()/2 - self.width()/2))))
             ]
             
             csr[0] += margin[3]
@@ -264,7 +269,7 @@ class Element:
                 
             self.content.insert(0, Element(self, '/start'))
             
-            lastel = None
+            lastel = self.content[0]
             
             for obj in self.content:
                 if isinstance(obj, Element):
@@ -298,20 +303,22 @@ class Element:
             elif self.ablock(): csr[:] = [self.csr_start_render[0] + self.iwidth(), self.csr_start_render[1]]
             return csr
         
-        except Exception as e:
+        except:
+            self.I_did_an_errorz = True
             raise
         finally:
-            self.rdleft = rdleft
-            self.rdright = rdright
-            self.rdtop = rdtop
-            self.rdbottom = rdbottom
-            
-            csr[0] += margin[1]
-            csr[1] += margin[2]
-            
-            self.margin = margin
-            
-            if self.content and isinstance(self.content[0], Element) and self.content[0].tag == '/start':
-                del self.content[0]
-            
-            if self.css.get('position') in ('absolute', 'fixed'): return oric
+            if not self.I_did_an_errorz:
+                self.rdleft = rdleft
+                self.rdright = rdright
+                self.rdtop = rdtop
+                self.rdbottom = rdbottom
+                
+                csr[0] += margin[1]
+                csr[1] += margin[2]
+                
+                self.margin = margin
+                
+                if self.content and isinstance(self.content[0], Element) and self.content[0].tag == '/start':
+                    del self.content[0]
+                
+                if self.css.get('position') in ('absolute', 'fixed'): return oric

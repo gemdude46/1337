@@ -36,6 +36,9 @@ mouse = [50, 1]
 scrmap = None
 osz = (0,0)
 
+MG_TOP = 3
+MG_BOTTOM = 1
+
 def app(stdscr):
     global scrmap, osz, URI
     
@@ -57,7 +60,8 @@ def app(stdscr):
     while True:
         ender = False
         evtrsp = []
-        document.cssize = size = stdscr.getmaxyx()
+        size = stdscr.getmaxyx()
+        document.cssize = (size[0] - MG_TOP - MG_BOTTOM, size[1])
         
         clickz = False
         
@@ -121,7 +125,7 @@ def app(stdscr):
         except curses.error: pass
         
         def setpxcb(xy, c, f, e):
-            if xy[0] >= 0 and xy[1] >= 0 and xy[0] < size[1] and xy[1] < size[0] - 4:
+            if xy[0] >= 0 and xy[1] >= 0 and xy[0] < size[1] and xy[1] < size[0] - (MG_TOP + MG_BOTTOM):
                 scrmap[xy[0]][xy[1]]['e'] = e
                 cpn = curses.pair_number(scrmap[xy[0]][xy[1]].get('a', 0))
                 f = f.format(fg = cpn % 8, bg = cpn // 8)
@@ -131,7 +135,7 @@ def app(stdscr):
                     eval_cache[f] = eval(f)
                     fp = eval_cache[f]
                 scrmap[xy[0]][xy[1]]['a'] = fp
-                stdscr.addstr(xy[1]+3, xy[0], c.encode(encoding), fp)
+                stdscr.addstr(xy[1]+MG_TOP, xy[0], c.encode(encoding), fp)
         
         
         for x in range(size[1]):
@@ -142,10 +146,10 @@ def app(stdscr):
         
         if focus == 'mouse':
             try:
-                E = scrmap[mouse[0]][mouse[1]-3]['e'] if mouse[1] > 2 and mouse[1] < size[0] - 1 else None
+                E = scrmap[mouse[0]][mouse[1]-3]['e'] if mouse[1] >= MG_TOP and mouse[1] < size[0] - MG_BOTTOM else None
                 mp = (
                     css_constants.cursors.get(E.CSS().get('cursor'), css_constants.cursors['default']) 
-                        if mouse[1] > 2 and mouse[1] < size[0] - 1 else 
+                        if mouse[1] >= MG_TOP and mouse[1] < size[0] - MG_BOTTOM else 
                             css_constants.cursors['default']
                      )
                 
